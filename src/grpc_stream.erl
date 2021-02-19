@@ -118,10 +118,14 @@ init(Req, Options) ->
                            },
                     try
                         before_loop(send_headers_first(NSt))
-                    catch T:R:Stk ->
-                        ?LOG(error, "Stream process crashed: ~p, ~p, stacktrace: ~p~n",
-                                     [T, R, Stk]),
+                    catch _Type:_Error ->
+                        ?LOG(error, "Stream process crashed: ~p, stacktrace: ~p~n",
+                                     [ _Type, _Error]),
                         shutdown(?GRPC_STATUS_INTERNAL, <<"Internal error">>, St)
+                    % catch T:R:Stk ->
+                    %     ?LOG(error, "Stream process crashed: ~p, ~p, stacktrace: ~p~n",
+                    %                  [T, R, Stk]),
+                    %     shutdown(?GRPC_STATUS_INTERNAL, <<"Internal error">>, St)
                     end;
                 _ ->
                     shutdown(?GRPC_STATUS_UNAUTHENTICATED, <<"">>, St)
@@ -193,9 +197,13 @@ before_loop(St = #{is_unary := false}) ->
             {Code, Reason, NSt} ->
                 shutdown(Code, Reason, NSt)
         end
-    catch T:R:Stk ->
+    % catch T:R:Stk ->
+    %     ?LOG(error, "Handle frame crashed: {~p, ~p} stacktrace: ~0p~n",
+    %                  [T, R, Stk]),
+    %     shutdown(?GRPC_STATUS_INTERNAL, <<"RPC Execution Crashed">>, St)
+    catch Type:Error ->
         ?LOG(error, "Handle frame crashed: {~p, ~p} stacktrace: ~0p~n",
-                     [T, R, Stk]),
+                     [Type, Error]),
         shutdown(?GRPC_STATUS_INTERNAL, <<"RPC Execution Crashed">>, St)
     end.
 
@@ -246,9 +254,13 @@ handle_in(Frame, St) ->
                 %% FIXME: Streaming: shutdown / reply_error ??
                 {shutdown, Code, <<"">>}
         end
-    catch T:R:Stk ->
+    % catch T:R:Stk ->
+    %     ?LOG(error, "Handle frame crashed: {~p, ~p} stacktrace: ~0p~n",
+    %                  [T, R, Stk]),
+    %     {shutdown, ?GRPC_STATUS_INTERNAL, <<"RPC Execution Crashed">>}
+    catch Type:Error ->
         ?LOG(error, "Handle frame crashed: {~p, ~p} stacktrace: ~0p~n",
-                     [T, R, Stk]),
+                     [Type, Error]),
         {shutdown, ?GRPC_STATUS_INTERNAL, <<"RPC Execution Crashed">>}
     end.
 

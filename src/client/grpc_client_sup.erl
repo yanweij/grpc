@@ -19,7 +19,7 @@
 
 -behaviour(supervisor).
 
--export([ create_channel_pool/3
+-export([ create_channel_pool/4
         , stop_channel_pool/1
         ]).
 
@@ -32,23 +32,35 @@
 %%--------------------------------------------------------------------
 %% APIs
 %%--------------------------------------------------------------------
-
--spec create_channel_pool(term(), uri_string:uri_string(), grpc_client:grpc_opts())
+-spec create_channel_pool(term(), string(), inet:port_number(), grpc_client:grpc_opts())
     -> supervisor:startchild_ret().
-create_channel_pool(Name, URL, Opts) ->
+create_channel_pool(Name, Host, Port, Opts) ->
     _ = application:ensure_all_started(gproc),
-    case uri_string:parse(URL) of
-        #{scheme := Scheme, host := Host, port := Port} ->
-            Server = {Scheme, Host, Port},
-            Spec = #{id       => Name,
-                     start    => {?MODULE, start_link, [Name, Server, Opts]},
-                     restart  => transient,
-                     shutdown => infinity,
-                     type     => supervisor,
-                     modules  => [?MODULE]},
-            supervisor:start_child(?APP_SUP, Spec);
-        {error, Reason, _} -> {error, Reason}
-    end.
+    Server = {http, Host, Port},
+    Spec = #{id       => Name,
+             start    => {?MODULE, start_link, [Name, Server, Opts]},
+             restart  => transient,
+             shutdown => infinity,
+             type     => supervisor,
+             modules  => [?MODULE]},
+    supervisor:start_child(?APP_SUP, Spec).
+  
+% -spec create_channel_pool(term(), uri_string:uri_string(), grpc_client:grpc_opts())
+%     -> supervisor:startchild_ret().
+% create_channel_pool(Name, URL, Opts) ->
+%     _ = application:ensure_all_started(gproc),
+%     case uri_string:parse(URL) of
+%         #{scheme := Scheme, host := Host, port := Port} ->
+%             Server = {Scheme, Host, Port},
+%             Spec = #{id       => Name,
+%                      start    => {?MODULE, start_link, [Name, Server, Opts]},
+%                      restart  => transient,
+%                      shutdown => infinity,
+%                      type     => supervisor,
+%                      modules  => [?MODULE]},
+%             supervisor:start_child(?APP_SUP, Spec);
+%         {error, Reason, _} -> {error, Reason}
+%     end.
 
 -spec stop_channel_pool(term()) -> ok.
 
